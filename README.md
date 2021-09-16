@@ -57,8 +57,8 @@ mirai-framework
         // device设置, 登录方法与MariaGo一致 
     ```
 
-
 # 实现一个插件超级简单
+
 ```
 func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 	return &client.Plugin{
@@ -84,6 +84,12 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 	}
 }
 ```
+为什么用 struct 而不是 interface
+
+- 因为用interface会强制实现所有方法, 你需要实现太多方法了
+- 如果用embedded-struct将会失去IDE智能的提示, 每次追加一个方法都要删掉embedded-struct才能智能提示
+- 框架即是为了给程序员提供便利, 而不是提高逼格, 如果觉得这样的方法写起来很难看, 您可以写成 Id: id (包内的方法)
+- 我当然希望有更好的解决办法
 
 # 功能展示  [mirai-bot](https://github.com/niuhuan/mirai-bot)
 
@@ -95,4 +101,5 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 ![](images/plugin06.jpg)
 
 # 如何建立自己的机器人
+
 [mirai-framework](https://github.com/niuhuan/mirai-framework)
