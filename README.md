@@ -91,6 +91,21 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 - 框架即是为了给程序员提供便利, 而不是提高逼格, 如果觉得这样的方法写起来很难看, 您可以写成 Id: id (包内的方法)
 - 我当然希望有更好的解决办法
 
+
+# 额外的api支持
+
+## client
+- func (c *Client) MessageSenderUin 获得消息的发送者, 支持所有类型的消息
+- func (c *Client) MessageContent 获得消息的内容, 支持所有类型的消息
+- func (c *Client) MessageFirstAt 获得消息中第一个AT的人
+- func (c *Client) CardNameInGroup 获取群名片
+- func (c *Client) MakeReplySendingMessage 创建一个回复消息, 如果是群员则自动带上@
+- func (c *Client) ReplyRawMessage 快捷回复 将消息按照原来的路径发回, 群员将自动带上@
+- func (c *Client) UploadReplyImage 上传图片, 接受人为消息源, 回复图片消息使用
+- func (c *Client) UploadReplyVideo 上传视频, 接受人为消息源, 回复视频消息使用
+- func (c *Client) AtElement 创建一个at
+- func (c *Client) ReplyText 快速回复一个文本消息
+****
 # 功能展示  [mirai-bot](https://github.com/niuhuan/mirai-bot)
 
 ![](images/plugin01.jpg)
