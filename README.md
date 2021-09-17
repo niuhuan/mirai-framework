@@ -96,6 +96,7 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 
 ## client
 - func (c *Client) MessageSenderUin 获得消息的发送者, 支持所有类型的消息
+- func (c *Client) MessageElements 获得消息的组成, 支持所有类型的消息
 - func (c *Client) MessageContent 获得消息的内容, 支持所有类型的消息
 - func (c *Client) MessageFirstAt 获得消息中第一个AT的人
 - func (c *Client) CardNameInGroup 获取群名片
@@ -115,6 +116,6 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 ![](images/plugin05.jpg)
 ![](images/plugin06.jpg)
 
-# 如何建立自己的机器人
+# 参考模版
 
-[mirai-framework](https://github.com/niuhuan/mirai-framework)
+[mirai-bot](https://github.com/niuhuan/mirai-bot)

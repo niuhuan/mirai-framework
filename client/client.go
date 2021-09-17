@@ -231,6 +231,15 @@ func (c *Client) SendGroupTempMessage(groupCode, target int64, m *message.Sendin
 
 // 工具方法
 
+// MessageElements 获取消息的组成
+func (c *Client) MessageElements(messageInterface interface{}) []message.IMessageElement {
+	in := reflect.ValueOf(messageInterface).Elem().FieldByName("Elements").Interface()
+	if array, ok := in.([]message.IMessageElement); ok {
+		return array
+	}
+	return nil
+}
+
 // MessageContent 获取消息的文本内容
 func (c *Client) MessageContent(messageInterface interface{}) string {
 	return reflect.ValueOf(messageInterface).MethodByName("ToString").Call([]reflect.Value{})[0].String()
