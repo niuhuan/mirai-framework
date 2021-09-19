@@ -29,33 +29,20 @@ mirai-framework
 - OnSendGroupMessage 发送了组群消息将会执行回调
 - OnSendTempMessage 发送了私聊消息将会执行回调
 
-# 如何引用
 
-- 增加git子模块
-    ```shell
-    git submodule add -b master https://github.com/niuhuan/mirai-framework.git framework
-    ```
+# 额外的api支持
 
-- 配置go.mod
-    ```
-    require (
-        github.com/Mrs4s/MiraiGo v0.0.0-20210906051204-59288fc4dcf2
-        github.com/niuhuan/mirai-framework v0.0.0
-    )
-    
-    replace github.com/niuhuan/mirai-framework v0.0.0 => ./framework
-    
-    ```
-
-- 使用 请参考 [mirai-bot](https://github.com/niuhuan/mirai-bot)
-    ```
-        client := client.NewClientMd5(config.Uin, config.PasswordBytes)
-        client.SetActionListenersAndPlugins(
-            actionsListeners,
-            plunins,
-        )
-        // device设置, 登录方法与MariaGo一致 
-    ```
+- func (c *Client) MessageSenderUin 获得消息的发送者, 支持所有类型的消息
+- func (c *Client) MessageElements 获得消息的组成, 支持所有类型的消息
+- func (c *Client) MessageContent 获得消息的内容, 支持所有类型的消息
+- func (c *Client) MessageFirstAt 获得消息中第一个AT的人
+- func (c *Client) CardNameInGroup 获取群名片
+- func (c *Client) MakeReplySendingMessage 创建一个回复消息, 如果是群员则自动带上@
+- func (c *Client) ReplyRawMessage 快捷回复 将消息按照原来的路径发回, 群员将自动带上@
+- func (c *Client) UploadReplyImage 上传图片, 接受人为消息源, 回复图片消息使用
+- func (c *Client) UploadReplyVideo 上传视频, 接受人为消息源, 回复视频消息使用
+- func (c *Client) AtElement 创建一个at
+- func (c *Client) ReplyText 快速回复一个文本消息
 
 # 实现一个插件超级简单
 
@@ -84,38 +71,40 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 	}
 }
 ```
+
 为什么用 struct 而不是 interface
 
 - 因为用interface会强制实现所有方法, 你需要实现太多方法了
 - 如果用embedded-struct将会失去IDE智能的提示, 每次追加一个方法都要删掉embedded-struct才能智能提示
-- 框架即是为了给程序员提供便利, 而不是提高逼格, 如果觉得这样的方法写起来很难看, 您可以写成 Id: id (包内的方法)
-- 我当然希望有更好的解决办法
 
+# 如何引用
 
-# 额外的api支持
+推荐
+- [机器人模版mirai-bot](https://github.com/niuhuan/mirai-bot)
 
-## client
-- func (c *Client) MessageSenderUin 获得消息的发送者, 支持所有类型的消息
-- func (c *Client) MessageElements 获得消息的组成, 支持所有类型的消息
-- func (c *Client) MessageContent 获得消息的内容, 支持所有类型的消息
-- func (c *Client) MessageFirstAt 获得消息中第一个AT的人
-- func (c *Client) CardNameInGroup 获取群名片
-- func (c *Client) MakeReplySendingMessage 创建一个回复消息, 如果是群员则自动带上@
-- func (c *Client) ReplyRawMessage 快捷回复 将消息按照原来的路径发回, 群员将自动带上@
-- func (c *Client) UploadReplyImage 上传图片, 接受人为消息源, 回复图片消息使用
-- func (c *Client) UploadReplyVideo 上传视频, 接受人为消息源, 回复视频消息使用
-- func (c *Client) AtElement 创建一个at
-- func (c *Client) ReplyText 快速回复一个文本消息
-****
-# 功能展示  [mirai-bot](https://github.com/niuhuan/mirai-bot)
+手动
+- 增加git子模块
+    ```shell
+    git submodule add -b master https://github.com/niuhuan/mirai-framework.git framework
+    ```
 
-![](images/plugin01.jpg)
-![](images/plugin02.jpg)
-![](images/plugin03.jpg)
-![](images/plugin04.jpg)
-![](images/plugin05.jpg)
-![](images/plugin06.jpg)
+- 配置go.mod
+    ```
+    require (
+        github.com/Mrs4s/MiraiGo v0.0.0-20210906051204-59288fc4dcf2
+        github.com/niuhuan/mirai-framework v0.0.0
+    )
+    
+    replace github.com/niuhuan/mirai-framework v0.0.0 => ./framework
+    
+    ```
 
-# 参考模版
-
-[mirai-bot](https://github.com/niuhuan/mirai-bot)
+- 登录需要判断是否输入验证码, 设备锁等, 步骤较多,请参考 [mirai-bot](https://github.com/niuhuan/mirai-bot)
+    ```
+        client := client.NewClientMd5(config.Uin, config.PasswordBytes)
+        client.SetActionListenersAndPlugins(
+            actionsListeners,
+            plunins,
+        )
+        // device设置, 登录方法与MariaGo一致 
+    ```
