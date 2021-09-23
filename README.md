@@ -1,6 +1,6 @@
 mirai-framework
 =====
-一个基于MariGo的QQ机器人框架, 完全插件化的设计, 帮您轻而易举的建立属于自己的机器人, 对其增改插件, 同时保持更为清晰的代码结构
+一个基于MariGo的QQ机器人框架, 完全插件化的设计, 帮您轻而易举的建立属于自己的机器人, 对其增改插件, 同时保持更为清晰的代码结构。
 
 # 设计思路
 
@@ -29,8 +29,7 @@ mirai-framework
 - OnSendGroupMessage 发送了组群消息将会执行回调
 - OnSendTempMessage 发送了私聊消息将会执行回调
 
-
-# 额外的api支持
+## 额外的api支持
 
 - func (c *Client) MessageSenderUin 获得消息的发送者, 支持所有类型的消息
 - func (c *Client) MessageElements 获得消息的组成, 支持所有类型的消息
@@ -44,26 +43,27 @@ mirai-framework
 - func (c *Client) AtElement 创建一个at
 - func (c *Client) ReplyText 快速回复一个文本消息
 
-# 实现一个插件超级简单
+# 如何使用
 
-```
-func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
-	return &client.Plugin{
+## 实现一个插件超级简单
+
+```text
+package hello
+
+import "github.com/niuhuan/mirai-framework"
+
+func PluginInstance() *mirai.Plugin {
+	return &mirai.Plugin{
 		Id: func() string {
-			return "MENU"
+			return "HELLO_WORLD"
 		},
 		Name: func() string {
-			return "菜单"
+			return "你好世界"
 		},
-		OnMessage: func(client *client.Client, messageInterface interface{}) bool {
+		OnMessage: func(client *mirai.Client, messageInterface interface{}) bool {
 			content := client.MessageContent(messageInterface)
-			if strings.EqualFold("菜单", content) {
-				builder := strings.Builder{}
-				builder.WriteString("菜单 : ")
-				for i := 0; i < len(customerPlugins); i++ {
-					builder.WriteString(fmt.Sprintf("\n♦️ %s", (*customerPlugins[i]).Name()))
-				}
-				client.ReplyText(messageInterface, builder.String())
+			if content == "你好" {
+				client.ReplyText(messageInterface, "世界")
 				return true
 			}
 			return false
@@ -74,37 +74,36 @@ func NewPluginInstance(customerPlugins []*client.Plugin) *client.Plugin {
 
 为什么用 struct 而不是 interface
 
-- 因为用interface会强制实现所有方法, 你需要实现太多方法了
-- 如果用embedded-struct将会失去IDE智能的提示, 每次追加一个方法都要删掉embedded-struct才能智能提示
+- interface只需要选择其中几个func实现, 这种场景还是比较少见的
+- 用interface会强制实现所有方法, 你需要实现太多方法了, 如果用embedded-struct将会失去IDE智能的提示
 
-# 如何引用
+## 启动机器人
 
-推荐
-- [机器人模版mirai-bot](https://github.com/niuhuan/mirai-bot)
+```text
+  func main() {
+      // 初始化手机机型等信息
+      config.InitDeviceInfo()
+      // 创建机器人
+      client := mirai.NewClientMd5(Account.Uin, Account.PasswordBytes)
+      // 注册插件
+      client.SetActionListenersAndPlugins(
+          nil,
+          []*mirai.Plugin{
+              hello.PluginInstance(),
+          },
+      )
+      // 登录
+      cmdLogin(client)
+      // 等待退出信号
+	  ch := make(chan os.Signal)
+	  signal.Notify(ch, os.Interrupt, os.Kill)
+	  <-ch
+  }
+```
 
-手动
-- 增加git子模块
-    ```shell
-    git submodule add -b master https://github.com/niuhuan/mirai-framework.git framework
-    ```
+- [InitDeviceInfo](https://github.com/niuhuan/mirai-bot/blob/master/config/device.go) 从设备读取机型等信息
+- [cmdLogin](https://github.com/niuhuan/mirai-bot/blob/master/login/login.go) 处理登录验证码, 设备锁等功能
 
-- 配置go.mod
-    ```
-    require (
-        github.com/Mrs4s/MiraiGo v0.0.0-20210906051204-59288fc4dcf2
-        github.com/niuhuan/mirai-framework v0.0.0
-    )
-    
-    replace github.com/niuhuan/mirai-framework v0.0.0 => ./framework
-    
-    ```
+# 机器人模版
 
-- 登录需要判断是否输入验证码, 设备锁等, 步骤较多,请参考 [mirai-bot](https://github.com/niuhuan/mirai-bot)
-    ```
-        client := client.NewClientMd5(config.Uin, config.PasswordBytes)
-        client.SetActionListenersAndPlugins(
-            actionsListeners,
-            plunins,
-        )
-        // device设置, 登录方法与MariaGo一致 
-    ```
+- [mirai-bot](https://github.com/niuhuan/mirai-bot)
