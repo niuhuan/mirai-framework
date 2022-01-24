@@ -233,6 +233,11 @@ func (c *Client) SendGroupTempMessage(groupCode, target int64, m *message.Sendin
 
 // MessageElements 获取消息的组成
 func (c *Client) MessageElements(messageInterface interface{}) []message.IMessageElement {
+	return MessageElements(messageInterface)
+}
+
+// MessageElements 获取消息的组成
+func MessageElements(messageInterface interface{}) []message.IMessageElement {
 	in := reflect.ValueOf(messageInterface).Elem().FieldByName("Elements").Interface()
 	if array, ok := in.([]message.IMessageElement); ok {
 		return array
@@ -247,6 +252,11 @@ func (c *Client) MessageContent(messageInterface interface{}) string {
 
 // MessageFirstAt 第一个At的用户
 func (c *Client) MessageFirstAt(groupMessage *message.GroupMessage) int64 {
+	return MessageFirstAt(groupMessage)
+}
+
+// MessageFirstAt 第一个At的用户
+func MessageFirstAt(groupMessage *message.GroupMessage) int64 {
 	for _, element := range groupMessage.Elements {
 		if element.Type() == message.At {
 			if at, ok := element.(*message.AtElement); ok {
@@ -278,6 +288,11 @@ func (c *Client) CardNameInGroup(groupCode int64, uin int64) string {
 
 // MessageSenderUin 获取消息的发送者
 func (c *Client) MessageSenderUin(source interface{}) int64 {
+	return MessageSenderUin(source)
+}
+
+// MessageSenderUin 获取消息的发送者
+func  MessageSenderUin(source interface{}) int64 {
 	if privateMessage, b := (source).(*message.PrivateMessage); b {
 		return privateMessage.Sender.Uin
 	} else if groupMessage, b := (source).(*message.GroupMessage); b {
