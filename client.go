@@ -204,7 +204,7 @@ func (c *Client) steamActionListeners(fun func(actionListener *ActionListener) b
 
 func (c *Client) SendPrivateMessage(target int64, m *message.SendingMessage) *message.PrivateMessage {
 	message := c.QQClient.SendPrivateMessage(target, m)
-	c.logMessage(message, logFlagReceiving)
+	c.logMessage(message, logFlagSending)
 	c.steamActionListeners(func(actionListener *ActionListener) bool {
 		return actionListener.OnSendPrivateMessage != nil && actionListener.OnSendPrivateMessage(c, message)
 	})
@@ -213,7 +213,7 @@ func (c *Client) SendPrivateMessage(target int64, m *message.SendingMessage) *me
 
 func (c *Client) SendGroupMessage(groupCode int64, m *message.SendingMessage, f ...bool) *message.GroupMessage {
 	message := c.QQClient.SendGroupMessage(groupCode, m)
-	c.logMessage(message, logFlagReceiving)
+	c.logMessage(message, logFlagSending)
 	c.steamActionListeners(func(actionListener *ActionListener) bool {
 		return actionListener.OnSendGroupMessage != nil && actionListener.OnSendGroupMessage(c, message)
 	})
@@ -222,7 +222,7 @@ func (c *Client) SendGroupMessage(groupCode int64, m *message.SendingMessage, f 
 
 func (c *Client) SendGroupTempMessage(groupCode, target int64, m *message.SendingMessage) *message.TempMessage {
 	message := c.QQClient.SendGroupTempMessage(groupCode, target, m)
-	c.logMessage(message, logFlagReceiving, target)
+	c.logMessage(message, logFlagSending, target)
 	c.steamActionListeners(func(actionListener *ActionListener) bool {
 		return actionListener.OnSendTempMessage != nil && actionListener.OnSendTempMessage(c, message, target)
 	})
