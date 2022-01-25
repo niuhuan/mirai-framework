@@ -179,7 +179,7 @@ func (c *Client) steamPlugins(fun func(plugin *Plugin) bool) {
 				return
 			}
 		}
-		c.Logger.Info(fmt.Sprintf("<<< NOT PROCESS"))
+		c.Logger.Info(fmt.Sprintf("<<< PLUGIN NOT PROCESS"))
 	}()
 }
 
@@ -196,7 +196,7 @@ func (c *Client) steamActionListeners(fun func(actionListener *ActionListener) b
 				return
 			}
 		}
-		c.Logger.Info(fmt.Sprintf("<<< NOT PROCESS"))
+		c.Logger.Info(fmt.Sprintf("<<< ACTION NOT PROCESS"))
 	}()
 }
 
@@ -292,7 +292,7 @@ func (c *Client) MessageSenderUin(source interface{}) int64 {
 }
 
 // MessageSenderUin 获取消息的发送者
-func  MessageSenderUin(source interface{}) int64 {
+func MessageSenderUin(source interface{}) int64 {
 	if privateMessage, b := (source).(*message.PrivateMessage); b {
 		return privateMessage.Sender.Uin
 	} else if groupMessage, b := (source).(*message.GroupMessage); b {
@@ -492,6 +492,12 @@ func (c *Client) FormatMessageElements(entries []message.IMessageElement) ([]byt
 				"Type":   "RegBag",
 				"Title":  redBag.Title,
 				"RbType": int(redBag.MsgType),
+			})
+		} else if face, b := (entries[i]).(*message.FaceElement); b {
+			fEntries = append(fEntries, map[string]interface{}{
+				"Type":  "Face",
+				"Name":  face.Name,
+				"Index": face.Index,
 			})
 		} else {
 			fEntries = append(fEntries, map[string]interface{}{
