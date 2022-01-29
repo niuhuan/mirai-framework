@@ -247,6 +247,11 @@ func MessageElements(messageInterface interface{}) []message.IMessageElement {
 
 // MessageContent 获取消息的文本内容
 func (c *Client) MessageContent(messageInterface interface{}) string {
+	return MessageContent(messageInterface)
+}
+
+// MessageContent 获取消息的文本内容
+func MessageContent(messageInterface interface{}) string {
 	return reflect.ValueOf(messageInterface).MethodByName("ToString").Call([]reflect.Value{})[0].String()
 }
 
@@ -325,7 +330,7 @@ func (c *Client) ReplyRawMessage(source interface{}, sendingMessage *message.Sen
 	}
 }
 
-// UploadReplyImage 上传文件用作回复
+// UploadReplyImage 上传图片用作回复
 func (c *Client) UploadReplyImage(source interface{}, buffer []byte) (message.IMessageElement, error) {
 	if privateMessage, b := (source).(*message.PrivateMessage); b {
 		return c.UploadPrivateImage(privateMessage.Sender.Uin, bytes.NewReader(buffer))
@@ -344,6 +349,18 @@ func (c *Client) UploadReplyVideo(source interface{}, video []byte, thumb []byte
 		groupCode = groupMessage.GroupCode
 	}
 	return c.UploadGroupShortVideo(groupCode, bytes.NewReader(video), bytes.NewReader(thumb))
+}
+
+// UploadReplyVoice 上传声音用作回复
+func (c *Client) UploadReplyVoice(source interface{}, buffer []byte) (message.IMessageElement, error) {
+	if privateMessage, b := (source).(*message.PrivateMessage); b {
+		return c.UploadPrivatePtt(privateMessage.Sender.Uin, bytes.NewReader(buffer))
+	} else if groupMessage, b := (source).(*message.GroupMessage); b {
+		return c.UploadGroupPtt(groupMessage.GroupCode, bytes.NewReader(buffer))
+	} else if tempMessage, b := (source).(*message.TempMessage); b {
+		return c.UploadPrivatePtt(tempMessage.Sender.Uin, bytes.NewReader(buffer))
+	}
+	return nil, errors.New("!")
 }
 
 // AtElement 创建一个At
