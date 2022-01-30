@@ -50,16 +50,16 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		c.logMessage(privateMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return ((*mPoint).OnPrivateMessage != nil && (*mPoint).OnPrivateMessage(c, privateMessage)) ||
-					((*mPoint).OnMessage != nil && (*mPoint).OnMessage(c, privateMessage))
+				return (mPoint.OnPrivateMessage != nil && mPoint.OnPrivateMessage(c, privateMessage)) ||
+					(mPoint.OnMessage != nil && mPoint.OnMessage(c, privateMessage))
 			})
 	})
 	c.OnGroupMessage(func(client *client.QQClient, groupMessage *message.GroupMessage) {
 		c.logMessage(groupMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return ((*mPoint).OnGroupMessage != nil && (*mPoint).OnGroupMessage(c, groupMessage)) ||
-					((*mPoint).OnMessage != nil && (*mPoint).OnMessage(c, groupMessage))
+				return (mPoint.OnGroupMessage != nil && mPoint.OnGroupMessage(c, groupMessage)) ||
+					(mPoint.OnMessage != nil && mPoint.OnMessage(c, groupMessage))
 			},
 		)
 	})
@@ -67,14 +67,15 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		c.logMessage(tempMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return (*mPoint).OnTempMessage(c, tempMessage.Message) || (*mPoint).OnMessage(c, tempMessage.Message)
+				return (mPoint.OnTempMessage != nil && mPoint.OnTempMessage(c, tempMessage.Message)) ||
+					(mPoint.OnMessage != nil && mPoint.OnMessage(c, tempMessage.Message))
 			},
 		)
 	})
 	c.OnNewFriendRequest(func(qqClient *client.QQClient, request *client.NewFriendRequest) {
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return (*mPoint).OnNewFriendRequest(c, request)
+				return mPoint.OnNewFriendRequest != nil && mPoint.OnNewFriendRequest(c, request)
 			},
 		)
 	})
@@ -82,14 +83,14 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		qqClient.ReloadFriendList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return (*mPoint).OnNewFriendAdded(c, event)
+				return mPoint.OnNewFriendAdded != nil && mPoint.OnNewFriendAdded(c, event)
 			},
 		)
 	})
 	c.OnGroupInvited(func(qqClient *client.QQClient, request *client.GroupInvitedRequest) {
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return (*mPoint).OnGroupInvited(c, request)
+				return mPoint.OnGroupInvited != nil && mPoint.OnGroupInvited(c, request)
 			},
 		)
 	})
@@ -97,7 +98,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		qqClient.ReloadGroupList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return (*mPoint).OnJoinGroup(c, info)
+				return mPoint.OnJoinGroup != nil && mPoint.OnJoinGroup(c, info)
 			},
 		)
 	})
@@ -105,7 +106,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		qqClient.ReloadGroupList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				return (*mPoint).OnLeaveGroup(c, event)
+				return mPoint.OnLeaveGroup != nil && mPoint.OnLeaveGroup(c, event)
 			},
 		)
 	})
