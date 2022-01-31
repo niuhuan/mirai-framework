@@ -29,9 +29,10 @@ func init() {
 
 type Client struct {
 	*client.QQClient
-	Logger           *logrus.Logger
-	actionsListeners []*ActionListener
-	plugins          []*Plugin
+	Logger          *logrus.Logger
+	actionListeners []*ActionListener
+	plugins         []*Plugin
+	pluginBlocker    func(plugin *Plugin, contactType int, contactNumber int64) bool
 }
 
 func NewClient(uin int64, password string) *Client {
@@ -50,6 +51,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		c.logMessage(privateMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypePrivate, privateMessage.Sender.Uin) {
+					return false
+				}
 				return (mPoint.OnPrivateMessage != nil && mPoint.OnPrivateMessage(c, privateMessage)) ||
 					(mPoint.OnMessage != nil && mPoint.OnMessage(c, privateMessage))
 			})
@@ -58,6 +62,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		c.logMessage(groupMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, groupMessage.GroupCode) {
+					return false
+				}
 				return (mPoint.OnGroupMessage != nil && mPoint.OnGroupMessage(c, groupMessage)) ||
 					(mPoint.OnMessage != nil && mPoint.OnMessage(c, groupMessage))
 			},
@@ -67,6 +74,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		c.logMessage(tempMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypePrivate, tempMessage.Message.Sender.Uin) {
+					return false
+				}
 				return (mPoint.OnTempMessage != nil && mPoint.OnTempMessage(c, tempMessage.Message)) ||
 					(mPoint.OnMessage != nil && mPoint.OnMessage(c, tempMessage.Message))
 			},
@@ -75,6 +85,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 	c.OnNewFriendRequest(func(qqClient *client.QQClient, request *client.NewFriendRequest) {
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypePrivate, request.RequesterUin) {
+					return false
+				}
 				return mPoint.OnNewFriendRequest != nil && mPoint.OnNewFriendRequest(c, request)
 			},
 		)
@@ -83,6 +96,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		qqClient.ReloadFriendList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypePrivate, event.Friend.Uin) {
+					return false
+				}
 				return mPoint.OnNewFriendAdded != nil && mPoint.OnNewFriendAdded(c, event)
 			},
 		)
@@ -90,6 +106,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 	c.OnGroupInvited(func(qqClient *client.QQClient, request *client.GroupInvitedRequest) {
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, request.GroupCode) {
+					return false
+				}
 				return mPoint.OnGroupInvited != nil && mPoint.OnGroupInvited(c, request)
 			},
 		)
@@ -98,6 +117,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		qqClient.ReloadGroupList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, info.Code) {
+					return false
+				}
 				return mPoint.OnJoinGroup != nil && mPoint.OnJoinGroup(c, info)
 			},
 		)
@@ -106,6 +128,9 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		qqClient.ReloadGroupList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, event.Group.Code) {
+					return false
+				}
 				return mPoint.OnLeaveGroup != nil && mPoint.OnLeaveGroup(c, event)
 			},
 		)
@@ -115,12 +140,17 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 
 // SetActionListenersAndPlugins 设置监听器以及插件
 func (c *Client) SetActionListenersAndPlugins(actionListeners []*ActionListener, plugins []*Plugin) {
-	c.actionsListeners = actionListeners
-	c.plugins = plugins
+	c.SetActionListeners(actionListeners)
+	c.SetPlugins(plugins)
+}
+
+// SetActionListeners 设置监听器
+func (c *Client) SetActionListeners(actionListeners []*ActionListener)  {
+	c.actionListeners = actionListeners
 	var idList string
 	var nameList string
-	for i := 0; i < len(c.actionsListeners); i++ {
-		l := c.actionsListeners[i]
+	for i := 0; i < len(c.actionListeners); i++ {
+		l := c.actionListeners[i]
 		// ID校验
 		if l.Id == nil || strings.TrimSpace(l.Id()) == "" {
 			panic("actionsListeners的ID不可为空")
@@ -140,8 +170,13 @@ func (c *Client) SetActionListenersAndPlugins(actionListeners []*ActionListener,
 		}
 		nameList += name
 	}
-	idList = ""
-	nameList = ""
+}
+
+// SetPlugins 设置插件
+func (c *Client) SetPlugins(plugins []*Plugin) {
+	c.plugins = plugins
+	var idList string
+	var nameList string
 	for i := 0; i < len(c.plugins); i++ {
 		l := c.plugins[i]
 		// ID校验
@@ -163,6 +198,11 @@ func (c *Client) SetActionListenersAndPlugins(actionListeners []*ActionListener,
 		}
 		nameList += name
 	}
+}
+
+// SetPluginBlocker 设置插件拦截器
+func (c *Client) SetPluginBlocker(fun func(plugin *Plugin, contactType int, contactNumber int64) bool) {
+	c.pluginBlocker = fun
 }
 
 // 遍历所有的插件, 插件调用失败的时候会recovery
@@ -191,9 +231,9 @@ func (c *Client) steamActionListeners(fun func(actionListener *ActionListener) b
 				c.Logger.Error(fmt.Sprintf("action listener error: %v\n%s", err, debug.Stack()))
 			}
 		}()
-		for i := 0; i < len(c.actionsListeners); i++ {
-			if fun(c.actionsListeners[i]) {
-				c.Logger.Info(fmt.Sprintf("<<< PROCESS BY MODULE(%s)", (c.actionsListeners[i]).Id()))
+		for i := 0; i < len(c.actionListeners); i++ {
+			if fun(c.actionListeners[i]) {
+				c.Logger.Info(fmt.Sprintf("<<< PROCESS BY MODULE(%s)", (c.actionListeners[i]).Id()))
 				return
 			}
 		}
@@ -373,6 +413,9 @@ func (c *Client) AtElement(groupCode int64, uin int64) *message.AtElement {
 func (c *Client) ReplyText(source interface{}, content string) {
 	c.ReplyRawMessage(source, c.MakeReplySendingMessage(source).Append(message.NewText(content)))
 }
+
+const ContactTypePrivate = 1
+const ContactTypeGroup = 2
 
 // 插件
 
