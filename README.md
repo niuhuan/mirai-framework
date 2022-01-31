@@ -43,6 +43,10 @@ mirai-framework
 - func (c *Client) AtElement 创建一个at
 - func (c *Client) ReplyText 快速回复一个文本消息
 
+## 插件拦截器
+
+**client.SetPluginBlocker()** 可以实现插件拦截, 实现个别群个人启用禁用插件
+
 # 如何使用
 
 ## 实现一个插件超级简单
