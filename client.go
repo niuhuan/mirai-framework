@@ -32,7 +32,7 @@ type Client struct {
 	Logger          *logrus.Logger
 	actionListeners []*ActionListener
 	plugins         []*Plugin
-	pluginBlocker    func(plugin *Plugin, contactType int, contactNumber int64) bool
+	pluginBlocker   func(plugin *Plugin, contactType int, contactNumber int64) bool
 }
 
 func NewClient(uin int64, password string) *Client {
@@ -44,10 +44,8 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 		Logger:   logrus.New(),
 		QQClient: client.NewClientMd5(uin, password),
 	}
-	c.OnLog(func(qqClient *client.QQClient, event *client.LogEvent) {
-		c.Logger.Debugf("%s : %s", event.Type, event.Message)
-	})
-	c.OnPrivateMessage(func(qqClient *client.QQClient, privateMessage *message.PrivateMessage) {
+	c.Logger = logger
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, privateMessage *message.PrivateMessage) {
 		c.logMessage(privateMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
@@ -58,7 +56,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 					(mPoint.OnMessage != nil && mPoint.OnMessage(c, privateMessage))
 			})
 	})
-	c.OnGroupMessage(func(client *client.QQClient, groupMessage *message.GroupMessage) {
+	c.SubscribeEventHandler(func(client *client.QQClient, groupMessage *message.GroupMessage) {
 		c.logMessage(groupMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
@@ -70,7 +68,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 			},
 		)
 	})
-	c.OnTempMessage(func(qqClient *client.QQClient, tempMessage *client.TempMessageEvent) {
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, tempMessage *client.TempMessageEvent) {
 		c.logMessage(tempMessage, logFlagReceiving)
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
@@ -82,7 +80,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 			},
 		)
 	})
-	c.OnNewFriendRequest(func(qqClient *client.QQClient, request *client.NewFriendRequest) {
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, request *client.NewFriendRequest) {
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
 				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypePrivate, request.RequesterUin) {
@@ -92,7 +90,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 			},
 		)
 	})
-	c.OnNewFriendAdded(func(qqClient *client.QQClient, event *client.NewFriendEvent) {
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, event *client.NewFriendEvent) {
 		qqClient.ReloadFriendList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
@@ -103,7 +101,7 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 			},
 		)
 	})
-	c.OnGroupInvited(func(qqClient *client.QQClient, request *client.GroupInvitedRequest) {
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, request *client.GroupInvitedRequest) {
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
 				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, request.GroupCode) {
@@ -113,18 +111,18 @@ func NewClientMd5(uin int64, password [16]byte) *Client {
 			},
 		)
 	})
-	c.OnJoinGroup(func(qqClient *client.QQClient, info *client.GroupInfo) {
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, info *client.MemberJoinGroupEvent) {
 		qqClient.ReloadGroupList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
-				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, info.Code) {
+				if c.pluginBlocker != nil && c.pluginBlocker(mPoint, ContactTypeGroup, info.Group.Code) {
 					return false
 				}
 				return mPoint.OnJoinGroup != nil && mPoint.OnJoinGroup(c, info)
 			},
 		)
 	})
-	c.OnLeaveGroup(func(qqClient *client.QQClient, event *client.GroupLeaveEvent) {
+	c.SubscribeEventHandler(func(qqClient *client.QQClient, event *client.GroupLeaveEvent) {
 		qqClient.ReloadGroupList()
 		c.steamPlugins(
 			func(mPoint *Plugin) bool {
@@ -145,7 +143,7 @@ func (c *Client) SetActionListenersAndPlugins(actionListeners []*ActionListener,
 }
 
 // SetActionListeners 设置监听器
-func (c *Client) SetActionListeners(actionListeners []*ActionListener)  {
+func (c *Client) SetActionListeners(actionListeners []*ActionListener) {
 	c.actionListeners = actionListeners
 	var idList string
 	var nameList string
@@ -374,34 +372,62 @@ func (c *Client) ReplyRawMessage(source interface{}, sendingMessage *message.Sen
 // UploadReplyImage 上传图片用作回复
 func (c *Client) UploadReplyImage(source interface{}, buffer []byte) (message.IMessageElement, error) {
 	if privateMessage, b := (source).(*message.PrivateMessage); b {
-		return c.UploadPrivateImage(privateMessage.Sender.Uin, bytes.NewReader(buffer))
+		return c.UploadImage(
+			message.Source{
+				SourceType: message.SourcePrivate,
+				PrimaryID:  privateMessage.Sender.Uin,
+			}, bytes.NewReader(buffer),
+		)
 	} else if groupMessage, b := (source).(*message.GroupMessage); b {
-		return c.UploadGroupImage(groupMessage.GroupCode, bytes.NewReader(buffer))
-	} else if tempMessage, b := (source).(*message.TempMessage); b {
-		return c.UploadPrivateImage(tempMessage.Sender.Uin, bytes.NewReader(buffer))
+		return c.UploadImage(
+			message.Source{
+				SourceType: message.SourcePrivate,
+				PrimaryID:  groupMessage.GroupCode,
+			}, bytes.NewReader(buffer),
+		)
 	}
-	return nil, errors.New("!")
+	return nil, errors.New("only group message and private message")
 }
 
 // UploadReplyVideo 上传视频文件
 func (c *Client) UploadReplyVideo(source interface{}, video []byte, thumb []byte) (*message.ShortVideoElement, error) {
-	groupCode := int64(0)
 	if groupMessage, b := (source).(*message.GroupMessage); b {
-		groupCode = groupMessage.GroupCode
+		return c.UploadShortVideo(
+			message.Source{
+				SourceType: message.SourceGroup,
+				PrimaryID:  groupMessage.GroupCode,
+			}, bytes.NewReader(video), bytes.NewReader(thumb), 1,
+		)
 	}
-	return c.UploadGroupShortVideo(groupCode, bytes.NewReader(video), bytes.NewReader(thumb))
+	if privateMessage, b := (source).(*message.PrivateMessage); b {
+		return c.UploadShortVideo(
+			message.Source{
+				SourceType: message.SourcePrivate,
+				PrimaryID:  privateMessage.Sender.Uin,
+			}, bytes.NewReader(video), bytes.NewReader(thumb), 1,
+		)
+	}
+	return nil, errors.New("only group message and private message")
 }
 
 // UploadReplyVoice 上传声音用作回复
 func (c *Client) UploadReplyVoice(source interface{}, buffer []byte) (message.IMessageElement, error) {
 	if privateMessage, b := (source).(*message.PrivateMessage); b {
-		return c.UploadPrivatePtt(privateMessage.Sender.Uin, bytes.NewReader(buffer))
+		return c.UploadVoice(
+			message.Source{
+				SourceType: message.SourcePrivate,
+				PrimaryID:  privateMessage.Sender.Uin,
+			}, bytes.NewReader(buffer),
+		)
 	} else if groupMessage, b := (source).(*message.GroupMessage); b {
-		return c.UploadGroupPtt(groupMessage.GroupCode, bytes.NewReader(buffer))
-	} else if tempMessage, b := (source).(*message.TempMessage); b {
-		return c.UploadPrivatePtt(tempMessage.Sender.Uin, bytes.NewReader(buffer))
+		return c.UploadVoice(
+			message.Source{
+				SourceType: message.SourceGroup,
+				PrimaryID:  groupMessage.GroupCode,
+			}, bytes.NewReader(buffer),
+		)
 	}
-	return nil, errors.New("!")
+	return nil, errors.New("only group message and private message")
 }
 
 // AtElement 创建一个At
@@ -429,7 +455,7 @@ type Plugin struct {
 	OnNewFriendRequest func(client *Client, request *client.NewFriendRequest) bool
 	OnNewFriendAdded   func(client *Client, event *client.NewFriendEvent) bool
 	OnGroupInvited     func(client *Client, info *client.GroupInvitedRequest) bool
-	OnJoinGroup        func(client *Client, info *client.GroupInfo) bool
+	OnJoinGroup        func(client *Client, info *client.MemberJoinGroupEvent) bool
 	OnLeaveGroup       func(client *Client, event *client.GroupLeaveEvent) bool
 }
 
