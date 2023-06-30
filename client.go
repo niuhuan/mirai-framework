@@ -309,7 +309,7 @@ func (c *Client) UploadReplyVideo(source interface{}, video []byte, thumb []byte
 			message.Source{
 				SourceType: message.SourceGroup,
 				PrimaryID:  groupMessage.GroupCode,
-			}, bytes.NewReader(video), bytes.NewReader(thumb), 1,
+			}, bytes.NewReader(video), bytes.NewReader(thumb),
 		)
 	}
 	if privateMessage, b := (source).(*message.PrivateMessage); b {
@@ -317,7 +317,7 @@ func (c *Client) UploadReplyVideo(source interface{}, video []byte, thumb []byte
 			message.Source{
 				SourceType: message.SourcePrivate,
 				PrimaryID:  privateMessage.Sender.Uin,
-			}, bytes.NewReader(video), bytes.NewReader(thumb), 1,
+			}, bytes.NewReader(video), bytes.NewReader(thumb),
 		)
 	}
 	return nil, errors.New("only group message and private message")
